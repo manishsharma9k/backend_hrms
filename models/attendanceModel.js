@@ -15,7 +15,9 @@ const AttendanceSchema = new mongoose.Schema({
         type: String,
         enum: ['Present', 'Absent', 'On Leave'],
         required: true
-    }
+    },
+    checkIn: { type: Date, default: null },
+    checkOut: { type: Date, default: null }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Attendance', AttendanceSchema);

@@ -52,28 +52,45 @@ exports.getMyLeaves = async (req, res, next) => {
 // @access  Private/Employee
 exports.markAttendance = async (req, res, next) => {
     try {
-        const { status } = req.body; // Present, Absent, On Leave
-        
-        // Basic implementation: prevent marking attendance twice in one day
+        const { status } = req.body;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
         const existingAttendance = await Attendance.findOne({
             employee: req.user.id,
             date: { $gte: today }
         });
-
         if (existingAttendance) {
             return res.status(400).json({ success: false, error: 'Attendance already marked for today' });
         }
-
+        const now = new Date();
         const attendance = await Attendance.create({
             employee: req.user.id,
             status,
-            date: new Date()
+            date: now,
+            checkIn: now
         });
-
         res.status(201).json({ success: true, data: attendance });
+    } catch (err) {
+        res.status(400).json({ success: false, error: err.message });
+    }
+};
+
+// @desc    Check out
+// @route   PUT /api/employee/attendance/checkout
+// @access  Private/Employee
+exports.checkOut = async (req, res, next) => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const attendance = await Attendance.findOne({
+            employee: req.user.id,
+            date: { $gte: today }
+        });
+        if (!attendance) return res.status(404).json({ success: false, error: 'No attendance found for today' });
+        if (attendance.checkOut) return res.status(400).json({ success: false, error: 'Already checked out' });
+        attendance.checkOut = new Date();
+        await attendance.save();
+        res.status(200).json({ success: true, data: attendance });
     } catch (err) {
         res.status(400).json({ success: false, error: err.message });
     }
@@ -96,9 +113,12 @@ exports.getMyAttendance = async (req, res, next) => {
 // @access  Private/Employee
 exports.getSalaryDetails = async (req, res, next) => {
     try {
-        // Salary is stored on the User model
-        const user = await User.findById(req.user.id).select('salary');
-        res.status(200).json({ success: true, data: { salary: user.salary } });
+        const user = await User.findById(req.user.id).select('salary name email department').populate('department', 'name');
+        const attendance = await Attendance.find({ employee: req.user.id });
+        const presentDays = attendance.filter(a => a.status === 'Present').length;
+        const absentDays = attendance.filter(a => a.status === 'Absent').length;
+        const leaveDays = attendance.filter(a => a.status === 'On Leave').length;
+        res.status(200).json({ success: true, data: { salary: user.salary, name: user.name, email: user.email, department: user.department, presentDays, absentDays, leaveDays, totalDays: attendance.length } });
     } catch (err) {
         res.status(400).json({ success: false, error: err.message });
     }

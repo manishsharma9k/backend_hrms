@@ -13,21 +13,35 @@ exports.getPublicDepartments = async (req, res, next) => {
         res.status(400).json({ success: false, error: err.message });
     }
 };
+// @desc    Register a new admin
+// @route   POST /api/auth/admin/register
+// @access  Protected by secret key
+exports.registerAdmin = async (req, res, next) => {
+    try {
+        const { name, email, password, adminSecret, photo } = req.body;
+        const validSecret = (process.env.ADMIN_SECRET || 'hrms@admin2026').trim();
+        console.log('Received secret:', adminSecret);
+        console.log('Expected secret:', validSecret);
+        if (!adminSecret || adminSecret.trim() !== validSecret) {
+            return res.status(403).json({ success: false, error: 'Invalid admin secret key' });
+        }
+        const user = await User.create({ name, email, password, role: 'admin', photo: photo || '' });
+        sendTokenResponse(user, 201, res);
+    } catch (err) {
+        if (err.code === 11000) {
+            return res.status(400).json({ success: false, error: 'Email already exists.' });
+        }
+        res.status(400).json({ success: false, error: err.message });
+    }
+};
+
 // @desc    Register a new user (initial admin setup if needed)
 // @route   POST /api/auth/register
 // @access  Public (should be restricted in production)
 exports.register = async (req, res, next) => {
     try {
-        const { name, email, password, role, department } = req.body;
-
-        const user = await User.create({
-            name,
-            email,
-            password,
-            role,
-            department
-        });
-
+        const { name, email, password, role, department, photo } = req.body;
+        const user = await User.create({ name, email, password, role, department, photo: photo || '' });
         sendTokenResponse(user, 201, res);
     } catch (err) {
         if (err.code === 11000) {

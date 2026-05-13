@@ -25,7 +25,7 @@ const UserSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['employee', 'admin'],
+        enum: ['employee', 'admin', 'hr'],
         default: 'employee'
     },
     department: {
@@ -35,6 +35,18 @@ const UserSchema = new mongoose.Schema({
     salary: {
         type: Number,
         default: 0
+    },
+    photo: {
+        type: String,
+        default: ''
+    },
+    phone: {
+        type: String,
+        default: ''
+    },
+    designation: {
+        type: String,
+        default: ''
     },
     dateJoined: {
         type: Date,
